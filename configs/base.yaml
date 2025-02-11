@@ -2,15 +2,13 @@ SEED: 7
 DEBUG: False
 
 LOGGING:
-  FREQUENCY: 500
-
-CHANGE_DETECTION:
-  ENDTOEND: False
+  LOSS_FREQ: 10
+  EVAL_FREQ: 2
 
 TRAINER:
-  LR: 1e-5
-  BATCH_SIZE: 16
-  EPOCHS: 100
+  LR: 1e-4
+  BATCH_SIZE: 8
+  EPOCHS: 20
   OPTIMIZER: 'adamw'
   PATIENCE: 5
   VERBOSE: False
@@ -24,16 +22,13 @@ MODEL:
   LOSS_TYPE: 'L2'
 
 DATALOADER:
-  TRAIN: 'fold1'
-  VAL: 'fold2'
-  TEST: 'fold3'
+  SPLIT: 'random'  # 'site'
+  TRAIN: ['nairobi']
+  TEST: ['lagos']
   NUM_WORKER: 8
   SHUFFLE: True
-  YEAR: 2020
-  SITES: ['kigali']
-  SPECTRAL_BANDS: ['B4', 'B3', 'B2', 'B8']
-  SEASON: 'wet'
-  INCLUDE_UNLABELED: False
+  SPECTRAL_BANDS: ['Red', 'Green', 'Blue', 'NIR']
+  SITES: ['nairobi', 'lagos']
 
 AUGMENTATION:
   RANDOM_FLIP: True

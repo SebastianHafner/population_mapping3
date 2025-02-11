@@ -8,10 +8,9 @@ from collections import OrderedDict
 from sys import stderr
 
 
-def save_checkpoint(network, optimizer, epoch, cfg: experiment_manager.CfgNode):
+def save_checkpoint(network, optimizer, cfg: experiment_manager.CfgNode):
     save_file = Path(cfg.PATHS.OUTPUT) / 'networks' / f'{cfg.NAME}.pt'
     checkpoint = {
-        'epoch': epoch,
         'network': network.state_dict(),
         'optimizer': optimizer.state_dict()
     }
@@ -19,7 +18,7 @@ def save_checkpoint(network, optimizer, epoch, cfg: experiment_manager.CfgNode):
 
 
 def load_checkpoint(cfg: experiment_manager.CfgNode, device: torch.device):
-    net = PopulationDualTaskNet(cfg.MODEL) if cfg.CHANGE_DETECTION.ENDTOEND else PopulationNet(cfg.MODEL)
+    net =  PopulationNet(cfg.MODEL)
     net.to(device)
 
     save_file = Path(cfg.PATHS.OUTPUT) / 'networks' / f'{cfg.NAME}.pt'
@@ -30,7 +29,7 @@ def load_checkpoint(cfg: experiment_manager.CfgNode, device: torch.device):
     net.load_state_dict(checkpoint['network'])
     optimizer.load_state_dict(checkpoint['optimizer'])
 
-    return net, optimizer, checkpoint['epoch']
+    return net, optimizer
 
 
 def load_weights(output_path: Path, config_name: str, device: torch.device):

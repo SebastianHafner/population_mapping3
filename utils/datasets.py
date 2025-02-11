@@ -8,35 +8,20 @@ from utils.experiment_manager import CfgNode
 from affine import Affine
 
 
-def get_fold(cfg: CfgNode, split: str):
-    if split == 'train':
-        fold = cfg.DATALOADER.TRAIN
-    elif split == 'val':
-        fold = cfg.DATALOADER.VAL
-    elif split == 'test':
-        fold = cfg.DATALOADER.TEST
-    else:
-        raise Exception('Unkown split!')
-    return fold
-
-
-def get_units(cfg: CfgNode, split: str):
-    metadata_file = Path(cfg.PATHS.DATASET) / 'metadata_folds.json'
-    metadata = geofiles.load_json(metadata_file)
-    fold = get_fold(cfg, split)
-    return metadata['folds'][fold]
-
-
 class AbstractPopDataset(torch.utils.data.Dataset):
 
     def __init__(self, cfg: experiment_manager.CfgNode):
         super().__init__()
         self.cfg = cfg
         self.root_path = Path(cfg.PATHS.DATASET)
-        self.metadata = geofiles.load_json(self.root_path / 'metadata_folds.json')
-        self.indices = [['B2', 'B3', 'B4', 'B8'].index(band) for band in cfg.DATALOADER.SPECTRAL_BANDS]
-        self.year = cfg.DATALOADER.YEAR
-        self.season = cfg.DATALOADER.SEASON
+        self.split = cfg.DATALOADER.SPLIT
+        self.indices = [['Blue', 'Green', 'Red', 'NIR'].index(band) for band in cfg.DATALOADER.SPECTRAL_BANDS]
+        self.sites = cfg.DATALOADER.SITES
+        self.all_samples = []
+        for site in self.sites:
+            site_samples = geofiles.load_json(self.root_path / f'samples_{site}.json')
+            self.all_samples.extend(site_samples)
+        self.labeled_samples = [s for s in self.all_samples if s['is_labeled']]
 
     @abstractmethod
     def __getitem__(self, index: int) -> dict:
@@ -46,12 +31,10 @@ class AbstractPopDataset(torch.utils.data.Dataset):
     def __len__(self) -> int:
         pass
 
-    def _get_s2_img(self, year: int, season: str) -> np.ndarray:
-        file = self.root_path / 'kigali' / 's2' / f's2_{year}_{season}.tif'
+    def _get_planet_img(self, site: str) -> np.ndarray:
+        file = self.root_path / f'planet_{site}.tif'
         img, geo_transform, crs = geofiles.read_tif(file)
-        self.geo_transform = geo_transform
-        self.crs = crs
-        img = img[:, :, self.indices]
+        img = img[:, :, self.indices] / 2_000
         return img.astype(np.float32)
 
     def _get_unit_pop(self, unit_nr: int, year: int) -> int:
@@ -96,103 +79,42 @@ class PopDataset(AbstractPopDataset):
         super().__init__(cfg)
 
         self.run_type = run_type
-        self.fold = get_fold(cfg, run_type)
+        if self.split == 'random':
+            random_numbers = np.random.rand(len(self.labeled_samples))
+            if run_type == 'train':
+                self.samples = [s for s, r in zip(self.labeled_samples, random_numbers) if r < 0.8]
+            else:
+                self.samples = [s for s, r in zip(self.labeled_samples, random_numbers) if r >= 0.8]
+        else:
+            pass
+
+        self.images = {site: self._get_planet_img(site) for site in self.sites}
 
         # handling transformations of data
         self.no_augmentations = no_augmentations
         self.transform = augmentations.compose_transformations(cfg.AUGMENTATION, no_augmentations)
 
-        # collect samples
-        self.samples = []
-        for unit in self.metadata['folds'][self.fold]:
-            self.samples.extend(self.metadata['samples'][str(unit)])
-
         manager = multiprocessing.Manager()
         self.samples = manager.list(self.samples)
-
-        self.img = self._get_s2_img(self.year, self.season)
-
         self.length = len(self.samples)
 
     def __getitem__(self, index):
         s = self.samples[index]
-        i, j, unit = s['i'], s['j'], s['unit']
+        i_img, j_img, site = s['i_img'], s['j_img'], s['site']
 
-        i_start, i_end = i * 10, (i + 1) * 10
-        j_start, j_end = j * 10, (j + 1) * 10
-        patch = self.img[i_start:i_end, j_start:j_end, ]
+        patch = self.images[site][i_img:i_img + 100, j_img:j_img + 100, ]
         x = self.transform(patch)
 
-        y = s[f'pop{self.year}']
+        y = s['pop']
 
         item = {
             'x': x,
             'y': torch.tensor([y]),
-            'year': self.year,
-            'season': self.season,
-            'unit': unit,
-            'i': i,
-            'j': j,
+            'i': i_img,
+            'j': j_img,
         }
 
         return item
-
-    def __len__(self):
-        return self.length
-
-    def __str__(self):
-        return f'Dataset with {self.length} samples.'
-
-
-# dataset for urban extraction with building footprints
-class BitemporalCensusUnitDataset(AbstractPopDataset):
-
-    def __init__(self, cfg: experiment_manager.CfgNode, unit_nr: int, no_augmentations: bool = False):
-        super().__init__(cfg)
-
-        # handling transformations of data
-        self.no_augmentations = no_augmentations
-        self.transform = augmentations.compose_transformations(cfg.AUGMENTATION, no_augmentations)
-
-        self.unit_nr = unit_nr
-        self.samples = list(self.metadata['samples'][str(unit_nr)])
-
-        manager = multiprocessing.Manager()
-        self.samples = manager.list(self.samples)
-
-        self.t1, self.t2 = 2016, 2020
-        self.img_t1 = self._get_s2_img(self.t1, self.season)
-        self.img_t2 = self._get_s2_img(self.t2, self.season)
-
-        self.length = len(self.samples)
-
-    def __getitem__(self, index):
-        s = self.samples[index]
-        i, j, unit = s['i'], s['j'], s['unit']
-
-        i_start, i_end = i * 10, (i + 1) * 10
-        j_start, j_end = j * 10, (j + 1) * 10
-        patch_t1 = self.img_t1[i_start:i_end, j_start:j_end, ]
-        patch_t2 = self.img_t2[i_start:i_end, j_start:j_end, ]
-        x_t1 = self.transform(patch_t1)
-        x_t2 = self.transform(patch_t2)
-
-        item = {
-            'x_t1': x_t1,
-            'x_t2': x_t2,
-            'season': self.season,
-            'unit': unit,
-            'i': i,
-            'j': j,
-        }
-
-        return item
-
-    def get_unit_labels(self) -> tuple:
-        diff = self._get_unit_popgrowth(self.unit_nr)
-        pop_t1 = self._get_unit_pop(self.unit_nr, self.t1)
-        pop_t2 = self._get_unit_pop(self.unit_nr, self.t2)
-        return torch.tensor([diff]), torch.tensor([pop_t1]), torch.tensor([pop_t2]),
 
     def __len__(self):
         return self.length

@@ -1,4 +1,5 @@
 wandb/
+output/
 *ipynb
 .ipynb_checkpoints/
 utils/__pycache__
