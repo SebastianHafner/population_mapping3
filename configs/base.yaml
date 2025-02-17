@@ -10,6 +10,7 @@ TRAINER:
   BATCH_SIZE: 8
   EPOCHS: 1_000
   OPTIMIZER: 'adamw'
+  LR_SCHEDULER: 'linear'
   VERBOSE: False
 
 MODEL:

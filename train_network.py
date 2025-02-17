@@ -9,7 +9,7 @@ from torch.utils import data as torch_data
 import wandb
 import numpy as np
 
-from utils import networks, datasets, loss_functions, evaluation, experiment_manager, parsers
+from utils import networks, datasets, loss_functions, evaluation, experiment_manager, parsers, scheduler_factory
 
 
 def run_training(cfg):
@@ -18,7 +18,7 @@ def run_training(cfg):
     net.to(device)
 
     optimizer = optim.AdamW(net.parameters(), lr=cfg.TRAINER.LR, weight_decay=0.01)
-
+    scheduler = scheduler_factory.get_scheduler(cfg, optimizer)
     criterion = loss_functions.get_criterion(cfg.MODEL.LOSS_TYPE)
 
     # reset the generators
@@ -46,6 +46,7 @@ def run_training(cfg):
 
     for epoch in range(1, epochs + 1):
         print(f'Starting epoch {epoch}/{epochs}.')
+        wandb.log({'lr': scheduler.get_last_lr()[-1] if scheduler is not None else cfg.TRAINER.LR, 'epoch': epoch})
 
         start = timeit.default_timer()
         loss_set, pop_set = [], []
@@ -85,6 +86,8 @@ def run_training(cfg):
 
         assert (epoch == epoch_float)
         print(f'epoch float {epoch_float} (step {global_step}) - epoch {epoch}')
+        if scheduler is not None:
+            scheduler.step()
 
         if epoch % cfg.LOGGING.EVAL_FREQ == 0:
             # evaluation at the end of an epoch
