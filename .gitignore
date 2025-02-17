@@ -1,5 +1,6 @@
 wandb/
 output/
+work-dir/
 *ipynb
 .ipynb_checkpoints/
 utils/__pycache__
