@@ -68,8 +68,17 @@ class PopDataset(AbstractPopDataset):
                 self.samples = [s for s in self.all_samples if not s['is_labeled']]
             else:
                 raise Exception('Unknown run type.')
+        elif self.split == 'site':
+            if run_type == 'train':
+                self.samples = [s for s in self.labeled_samples if s['site'] in cfg.DATALOADER.TRAIN]
+            elif run_type == 'test':
+                self.samples = [s for s in self.labeled_samples if s['site'] in cfg.DATALOADER.TEST]
+            elif run_type == 'unlabeled':
+                self.samples = [s for s in self.all_samples if not s['is_labeled']]
+            else:
+                raise Exception('Unknown run type.')
         else:
-            pass
+            raise Exception('Unknown split.')
 
         # handling transformations of data
         self.no_augmentations = no_augmentations

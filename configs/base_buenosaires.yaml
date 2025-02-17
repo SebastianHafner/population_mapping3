@@ -1,0 +1,7 @@
+_BASE_: "base.yaml"
+
+DATALOADER:
+  SPLIT: 'site'  # 'site'
+  TRAIN: ['nairobi', 'lagos']
+  TEST: ['buenosaires']
+  SITES: ['nairobi', 'lagos', 'buenosaires']
