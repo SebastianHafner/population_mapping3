@@ -34,7 +34,7 @@ class AbstractPopDataset(torch.utils.data.Dataset):
     def _get_planet_img(self, site: str) -> np.ndarray:
         file = self.root_path / f'planet_{site}.tif'
         img, geo_transform, crs = geofiles.read_tif(file)
-        img = img[:, :, self.indices] / 2_000
+        img = img[:, :, self.indices] / 3_000
         return img.astype(np.float32)
 
     def _get_unit_pop(self, unit_nr: int, year: int) -> int:

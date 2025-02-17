@@ -6,11 +6,10 @@ LOGGING:
   EVAL_FREQ: 2
 
 TRAINER:
-  LR: 1e-4
+  LR: 1e-5
   BATCH_SIZE: 8
   EPOCHS: 20
   OPTIMIZER: 'adamw'
-  PATIENCE: 5
   VERBOSE: False
 
 MODEL:
@@ -28,7 +27,7 @@ DATALOADER:
   NUM_WORKER: 8
   SHUFFLE: True
   SPECTRAL_BANDS: ['Red', 'Green', 'Blue', 'NIR']
-  SITES: ['nairobi', 'lagos']
+  SITES: ['nairobi', 'lagos', 'buenosaires']
 
 AUGMENTATION:
   RANDOM_FLIP: True
