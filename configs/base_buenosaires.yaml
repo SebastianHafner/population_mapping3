@@ -1,5 +1,8 @@
 _BASE_: "base.yaml"
 
+TRAINER:
+  EPOCHS: 150
+
 DATALOADER:
   SPLIT: 'site'  # 'site'
   TRAIN: ['nairobi', 'lagos']

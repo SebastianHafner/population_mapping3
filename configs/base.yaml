@@ -8,7 +8,7 @@ LOGGING:
 TRAINER:
   LR: 1e-4
   BATCH_SIZE: 8
-  EPOCHS: 1_000
+  EPOCHS: 500
   OPTIMIZER: 'adamw'
   LR_SCHEDULER: 'linear'
   VERBOSE: False
