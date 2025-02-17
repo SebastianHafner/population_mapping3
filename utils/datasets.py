@@ -2,20 +2,21 @@ import torch
 from pathlib import Path
 from abc import abstractmethod
 import numpy as np
+import tifffile
 import multiprocessing
 from utils import augmentations, experiment_manager, geofiles
 from utils.experiment_manager import CfgNode
-from affine import Affine
 
 
 class AbstractPopDataset(torch.utils.data.Dataset):
 
-    def __init__(self, cfg: experiment_manager.CfgNode):
+    def __init__(self, cfg: CfgNode):
         super().__init__()
         self.cfg = cfg
         self.root_path = Path(cfg.PATHS.DATASET)
         self.split = cfg.DATALOADER.SPLIT
         self.indices = [['Blue', 'Green', 'Red', 'NIR'].index(band) for band in cfg.DATALOADER.SPECTRAL_BANDS]
+        self.rescale_factor = 3_000
         self.sites = cfg.DATALOADER.SITES
         self.all_samples = []
         for site in self.sites:
@@ -33,37 +34,15 @@ class AbstractPopDataset(torch.utils.data.Dataset):
 
     def _get_planet_img(self, site: str) -> np.ndarray:
         file = self.root_path / f'planet_{site}.tif'
-        img, geo_transform, crs = geofiles.read_tif(file)
-        img = img[:, :, self.indices] / 3_000
+        img = tifffile.imread(file)
+        img = np.clip(0, 1, img[:, :, self.indices] / self.rescale_factor)
         return img.astype(np.float32)
 
-    def _get_unit_pop(self, unit_nr: int, year: int) -> int:
-        return int(self.metadata['census'][str(unit_nr)][f'pop{year}'])
-
-    def _get_unit_popgrowth(self, unit_nr: int) -> int:
-        return int(self.metadata['census'][str(unit_nr)]['difference'])
-
-    def _get_unit_split(self, unit_nr: int) -> str:
-        return str(self.metadata['census'][str(unit_nr)][f'split'])
-
-    def _get_pop_label(self, site: str, year: int, i: int, j: int) -> float:
-        for s in self.metadata:
-            if s['site'] == site and s['year'] == year and s['i'] == i and s['j'] == j:
-                return float(s['pop'])
-        raise Exception('sample not found')
-
-    def get_pop_grid_geo(self, resolution: int = 100) -> tuple:
-        _, _, x_origin, _, _, y_origin, *_ = self.geo_transform
-        pop_transform = (x_origin, resolution, 0.0, y_origin, 0.0, -resolution)
-        pop_transform = Affine.from_gdal(*pop_transform)
-        return pop_transform, self.crs
-
-    def get_pop_grid(self) -> np.ndarray:
-        site_samples = [s for s in self.samples if s['site'] == 'kigali']
-        m = max([s['i'] for s in site_samples]) + 1
-        n = max([s['j'] for s in site_samples]) + 1
-        arr = np.full((m, n, 2), fill_value=np.nan, dtype=np.float32)
-        return arr
+    def _load_planet_tile(self, site: str, i_tile: int, j_tile: int) -> np.ndarray:
+        file = self.root_path / 'tiles' / site / f'planet_{site}_{i_tile:010d}_{j_tile:010d}.tif'
+        tile = tifffile.imread(file)
+        tile = np.clip(0, 1, tile[:, :, self.indices] / self.rescale_factor)
+        return tile.astype(np.float32)
 
     def __len__(self):
         return self.length
@@ -88,8 +67,6 @@ class PopDataset(AbstractPopDataset):
         else:
             pass
 
-        self.images = {site: self._get_planet_img(site) for site in self.sites}
-
         # handling transformations of data
         self.no_augmentations = no_augmentations
         self.transform = augmentations.compose_transformations(cfg.AUGMENTATION, no_augmentations)
@@ -101,11 +78,14 @@ class PopDataset(AbstractPopDataset):
     def __getitem__(self, index):
         s = self.samples[index]
         i_img, j_img, site = s['i_img'], s['j_img'], s['site']
+        i_tile, j_tile = i_img // 1_000 * 1_000, j_img // 1_000 * 1_000
+        tile = self._load_planet_tile(site, i_tile, j_tile)
 
-        patch = self.images[site][i_img:i_img + 100, j_img:j_img + 100, ]
-        x = self.transform(patch)
+        i_within_tile, j_within_tile = i_img % 1_000, j_img % 1_000
+        tile = tile[i_within_tile:i_within_tile + 100, j_within_tile:j_within_tile + 100]
 
-        y = s['pop']
+        x = self.transform(tile)
+        y = float(s['pop'])
 
         item = {
             'x': x,
