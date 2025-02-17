@@ -64,7 +64,7 @@ def run_training(cfg):
             optimizer.step()
 
             loss_set.append(loss.item())
-            pop_set.append(y_gts.flatten())
+            pop_set.append(y_gts.cpu().flatten().numpy())
 
             global_step += 1
             epoch_float = global_step / steps_per_epoch
