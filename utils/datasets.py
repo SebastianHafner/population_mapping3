@@ -62,8 +62,12 @@ class PopDataset(AbstractPopDataset):
             random_numbers = np.random.rand(len(self.labeled_samples))
             if run_type == 'train':
                 self.samples = [s for s, r in zip(self.labeled_samples, random_numbers) if r < 0.8]
-            else:
+            elif run_type == 'test':
                 self.samples = [s for s, r in zip(self.labeled_samples, random_numbers) if r >= 0.8]
+            elif run_type == 'unlabeled':
+                self.samples = [s for s in self.all_samples if not s['is_labeled']]
+            else:
+                raise Exception('Unknown run type.')
         else:
             pass
 
@@ -85,7 +89,11 @@ class PopDataset(AbstractPopDataset):
         tile = tile[i_within_tile:i_within_tile + 100, j_within_tile:j_within_tile + 100]
 
         x = self.transform(tile)
-        y = float(s['pop'])
+        if self.run_type == 'train' or self.run_type == 'test':
+            y = float(s['pop'])
+            assert not np.isnan(y) and y >= 0
+        else:
+            y = np.NaN
 
         item = {
             'x': x,

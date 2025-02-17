@@ -74,12 +74,13 @@ def run_training(cfg):
                 time = timeit.default_timer() - start
                 wandb.log({
                     'loss': np.mean(loss_set),
+                    'pop_ref': np.mean(pop_set),
                     'time': time,
                     'step': global_step,
                     'epoch': epoch_float,
                 })
                 start = timeit.default_timer()
-                loss_set = []
+                loss_set, pop_set = [], []
             # end of batch
 
         assert (epoch == epoch_float)

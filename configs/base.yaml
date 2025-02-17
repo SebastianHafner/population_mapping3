@@ -6,7 +6,7 @@ LOGGING:
   EVAL_FREQ: 10
 
 TRAINER:
-  LR: 1e-5
+  LR: 1e-4
   BATCH_SIZE: 8
   EPOCHS: 1_000
   OPTIMIZER: 'adamw'
