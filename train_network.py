@@ -41,8 +41,8 @@ def run_training(cfg):
     # tracking variables
     global_step = epoch_float = 0
 
-    evaluation.model_evaluation(net, cfg, 'train', epoch_float)
-    evaluation.model_evaluation(net, cfg, 'test', epoch_float)
+    # evaluation.model_evaluation(net, cfg, 'train', epoch_float)
+    # evaluation.model_evaluation(net, cfg, 'test', epoch_float)
 
     for epoch in range(1, epochs + 1):
         print(f'Starting epoch {epoch}/{epochs}.')

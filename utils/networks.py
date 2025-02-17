@@ -2,13 +2,10 @@ import torch
 import torch.nn as nn
 import torchvision
 from pathlib import Path
-from utils import experiment_manager
-from copy import deepcopy
-from collections import OrderedDict
-from sys import stderr
+from utils.experiment_manager import CfgNode
 
 
-def save_checkpoint(network, optimizer, cfg: experiment_manager.CfgNode):
+def save_checkpoint(network, optimizer, cfg: CfgNode):
     save_file = Path(cfg.PATHS.OUTPUT) / 'networks' / f'{cfg.NAME}.pt'
     checkpoint = {
         'network': network.state_dict(),
@@ -17,7 +14,7 @@ def save_checkpoint(network, optimizer, cfg: experiment_manager.CfgNode):
     torch.save(checkpoint, save_file)
 
 
-def load_checkpoint(cfg: experiment_manager.CfgNode, device: torch.device):
+def load_checkpoint(cfg: CfgNode, device: torch.device):
     net =  PopulationNet(cfg.MODEL)
     net.to(device)
 
@@ -29,88 +26,13 @@ def load_checkpoint(cfg: experiment_manager.CfgNode, device: torch.device):
     net.load_state_dict(checkpoint['network'])
     optimizer.load_state_dict(checkpoint['optimizer'])
 
-    return net, optimizer
+    return net
 
 
 def load_weights(output_path: Path, config_name: str, device: torch.device):
     save_file = Path(output_path) / 'networks' / f'{config_name}.pt'
     checkpoint = torch.load(save_file, map_location=device)
     return checkpoint['network']
-
-
-class PopulationDualTaskNet(nn.Module):
-
-    def __init__(self, model_cfg: experiment_manager.CfgNode):
-        super(PopulationDualTaskNet, self).__init__()
-
-        self.encoder = PopulationNet(model_cfg)
-        self.encoder.enable_fc = False
-        n_features = self.encoder.model.fc.in_features
-        self.change_fc = nn.Linear(n_features, 1)
-        self.relu = torch.nn.ReLU()
-
-        self.dummy_input_t1 = torch.rand((2, 4, 10, 10)).to('cuda')
-        self.dummy_input_t2 = torch.rand((2, 4, 10, 10)).to('cuda')
-
-    def forward(self, x_t1: torch.Tensor, x_t2: torch.Tensor) -> tuple:
-        features_t1 = self.encoder(x_t1)
-        features_t2 = self.encoder(x_t2)
-        p_t1 = self.relu(self.encoder.model.fc(features_t1))
-        p_t2 = self.relu(self.encoder.model.fc(features_t2))
-        features_fusion = features_t2 - features_t1
-        p_change = self.change_fc(features_fusion)
-        return p_change, p_t1, p_t2
-
-    def load_pretrained_encoder(self, cfg_name: str, weights_path: Path, device: torch.device, verbose: bool = True):
-        pretrained_weights = load_weights(weights_path, cfg_name, device)
-        self.encoder.load_state_dict(pretrained_weights)
-        if verbose:
-            print(f'Loaded encoder weights from {cfg_name}!')
-
-    def freeze_encoder(self, freeze_fc: bool = True, freeze_bn_rmean: bool = True):
-        # https://discuss.pytorch.org/t/network-output-changes-even-when-freezed-during-training/36423/6
-        # https://discuss.pytorch.org/t/how-to-freeze-bn-layers-while-training-the-rest-of-network-mean-and-var-wont-freeze/89736/17
-        for m in self.encoder.modules():
-            for param in m.parameters():
-                param.requires_grad = False
-            if freeze_bn_rmean:
-                if isinstance(m, torch.nn.BatchNorm2d):
-                    m.track_running_stats = False
-                    # m.eval()
-        if freeze_fc:
-            self.encoder.model.fc.requires_grad = False
-
-    def print_weight_stamps(self):
-        enc_stamp = 0
-        for parameter in self.encoder.parameters():
-            enc_stamp += torch.sum(parameter).item()
-
-        net_stamp = 0
-        for parameter in self.parameters():
-            net_stamp += torch.sum(parameter).item()
-        print(f'Weight stamps: net {net_stamp:.3f}, enc {enc_stamp:.3f}')
-
-    def print_output_stamps(self):
-        training = self.training
-        if self.training:
-            self.eval()
-        with torch.no_grad():
-            features_t1 = self.encoder(self.dummy_input_t1)
-            features_t2 = self.encoder(self.dummy_input_t2)
-
-            p_t1 = self.relu(self.encoder.model.fc(features_t1))
-            p_t2 = self.relu(self.encoder.model.fc(features_t2))
-
-            features_fusion = features_t2 - features_t1
-            p_change = self.change_fc(features_fusion)
-
-            # out_diff, b, c = self.forward(self.dummy_input_t1, self.dummy_input_t2)
-
-        print(f'Enc output stamp {torch.sum(p_t1).item():.3f}, {torch.sum(p_t2).item():.3f}')
-        print(f'Net output stamp {torch.sum(p_change).item():.3f}')
-
-        if training:
-            self.train()
 
 
 class PopulationNet(nn.Module):

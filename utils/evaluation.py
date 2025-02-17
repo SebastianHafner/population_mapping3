@@ -4,7 +4,6 @@ import wandb
 from utils import datasets, networks, experiment_manager
 import numpy as np
 from scipy import stats
-import sys
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

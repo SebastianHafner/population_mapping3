@@ -92,59 +92,8 @@ class PopDataset(AbstractPopDataset):
             'y': torch.tensor([y]),
             'i': i_img,
             'j': j_img,
-        }
-
-        return item
-
-    def __len__(self):
-        return self.length
-
-    def __str__(self):
-        return f'Dataset with {self.length} samples.'
-
-
-# dataset for urban extraction with building footprints
-class PopInferenceDataset(AbstractPopDataset):
-
-    def __init__(self, cfg: experiment_manager.CfgNode, year: int, nonans: bool = False):
-        super().__init__(cfg)
-
-        # handling transformations of data
-        self.no_augmentations = True
-        self.transform = augmentations.compose_transformations(cfg.AUGMENTATION, self.no_augmentations)
-
-        self.samples = []
-        for unit_nr in self.metadata['samples'].keys():
-            if int(unit_nr) == 0 and nonans:
-                continue
-            self.samples.extend(self.metadata['samples'][unit_nr])
-
-        manager = multiprocessing.Manager()
-        self.samples = manager.list(self.samples)
-
-        self.year = year
-        self.img = self._get_s2_img(self.year, self.season)
-
-        self.length = len(self.samples)
-
-    def __getitem__(self, index):
-
-        s = self.samples[index]
-        i, j, unit, isnan = s['i'], s['j'], s['unit'], bool(s['isnan'])
-
-        i_start, i_end = i * 10, (i + 1) * 10
-        j_start, j_end = j * 10, (j + 1) * 10
-        patch = self.img[i_start:i_end, j_start:j_end, ]
-        x = self.transform(patch)
-
-        y = s[f'pop{self.year}'] if f'pop{self.year}' in s.keys() else np.nan
-
-        item = {
-            'x': x,
-            'y': np.nan if isnan else y,
-            'unit': unit,
-            'i': i,
-            'j': j,
+            'id': s['id'],
+            'site': s['site'],
         }
 
         return item
