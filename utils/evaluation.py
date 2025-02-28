@@ -35,12 +35,12 @@ class RegressionEvaluation(object):
         return r_value
 
 
-def model_evaluation(net: networks.PopulationNet, cfg: experiment_manager.CfgNode, run_type: str, epoch: float):
+def model_evaluation(net: networks.PlanetNet, cfg: experiment_manager.CfgNode, run_type: str, epoch: float):
     net.to(device)
     net.eval()
 
     measurer = RegressionEvaluation()
-    dataset = datasets.PopDataset(cfg, run_type, no_augmentations=True)
+    dataset = datasets.SurveyDataset(cfg, run_type, no_augmentations=True)
     dataloader_kwargs = {
         'batch_size': 1,
         'num_workers': 0 if cfg.DEBUG else cfg.DATALOADER.NUM_WORKER,

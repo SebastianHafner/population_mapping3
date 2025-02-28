@@ -15,7 +15,7 @@ def save_checkpoint(network, optimizer, cfg: CfgNode):
 
 
 def load_checkpoint(cfg: CfgNode, device: torch.device):
-    net =  PopulationNet(cfg.MODEL)
+    net =  PlanetNet(cfg.MODEL)
     net.to(device)
 
     save_file = Path(cfg.PATHS.OUTPUT) / 'networks' / f'{cfg.NAME}.pt'
@@ -35,12 +35,12 @@ def load_weights(output_path: Path, config_name: str, device: torch.device):
     return checkpoint['network']
 
 
-class PopulationNet(nn.Module):
+class PlanetNet(nn.Module):
 
-    def __init__(self, model_cfg, enable_fc: bool = True):
-        super(PopulationNet, self).__init__()
+    def __init__(self, model_cfg):
+        super(PlanetNet, self).__init__()
         self.model_cfg = model_cfg
-        self.enable_fc = enable_fc
+        self.output_activation = model_cfg.OUTPUT_ACTIVATION
         pt = model_cfg.PRETRAINED
         assert (model_cfg.TYPE == 'resnet')
         if model_cfg.SIZE == 18:
@@ -82,19 +82,18 @@ class PopulationNet(nn.Module):
         # replacing fully connected layer
         num_ftrs = self.model.fc.in_features
         self.model.fc = nn.Linear(num_ftrs, model_cfg.OUT_CHANNELS)
-        self.relu = torch.nn.ReLU()
+        if self.output_activation == 'ReLu':
+            self.output_activation_func = torch.nn.ReLU()
+        elif self.output_activation == 'Sigmoid':
+            self.output_activation_func = torch.nn.Sigmoid()
+        else:
+            raise Exception('Unkown activation function!')
         self.encoder = torch.nn.Sequential(*(list(self.model.children())[:-1]))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.enable_fc:
-            x = self.model(x)
-            x = self.relu(x)
-        else:
-            x = self.encoder(x)
-            x = x.squeeze()
-            if len(x.shape) == 1:
-                x = x.unsqueeze(0)
-        return x
+        x = self.model(x)
+        out = self.output_activation_func(x)
+        return out
 
 
 if __name__ == '__main__':

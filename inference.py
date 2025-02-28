@@ -13,7 +13,7 @@ def inference(cfg: CfgNode):
     data = []
 
     for run_type in ['train', 'test', 'unlabeled']:
-        dataset = datasets.PopDataset(cfg=cfg, run_type=run_type)
+        dataset = datasets.SurveyDataset(cfg=cfg, run_type=run_type)
         for index in range(len(dataset)):
             item = dataset.__getitem__(index)
             img = item['x'].to(device)

@@ -8,19 +8,20 @@ from utils import augmentations, experiment_manager, geofiles
 from utils.experiment_manager import CfgNode
 
 
-class AbstractPopDataset(torch.utils.data.Dataset):
+class AbstractSurveyDataset(torch.utils.data.Dataset):
 
     def __init__(self, cfg: CfgNode):
         super().__init__()
         self.cfg = cfg
         self.root_path = Path(cfg.PATHS.DATASET)
+        self.label = cfg.DATALOADER.LABEL
         self.split = cfg.DATALOADER.SPLIT
         self.indices = [['Blue', 'Green', 'Red', 'NIR'].index(band) for band in cfg.DATALOADER.SPECTRAL_BANDS]
         self.rescale_factor = 3_000
         self.sites = cfg.DATALOADER.SITES
         self.all_samples = []
         for site in self.sites:
-            site_samples = geofiles.load_json(self.root_path / f'samples_{site}.json')
+            site_samples = geofiles.load_json(self.root_path / f'samples_{self.label}_{site}.json')
             self.all_samples.extend(site_samples)
         self.labeled_samples = [s for s in self.all_samples if s['is_labeled']]
 
@@ -52,7 +53,7 @@ class AbstractPopDataset(torch.utils.data.Dataset):
 
 
 # dataset for urban extraction with building footprints
-class PopDataset(AbstractPopDataset):
+class SurveyDataset(AbstractSurveyDataset):
 
     def __init__(self, cfg: experiment_manager.CfgNode, run_type: str, no_augmentations: bool = False):
         super().__init__(cfg)
@@ -99,7 +100,7 @@ class PopDataset(AbstractPopDataset):
 
         x = self.transform(tile)
         if self.run_type == 'train' or self.run_type == 'test':
-            y = float(s['pop'])
+            y = float(s[self.label])
             assert not np.isnan(y) and y >= 0
         else:
             y = np.NaN

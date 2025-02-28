@@ -16,12 +16,14 @@ TRAINER:
 MODEL:
   TYPE: 'resnet'
   SIZE: 18
+  OUTPUT_ACTIVATION: 'ReLu'
   PRETRAINED: True
   OUT_CHANNELS: 1
   IN_CHANNELS: 4
   LOSS_TYPE: 'L2'
 
 DATALOADER:
+  LABEL: 'pop'
   SPLIT: 'random'  # 'site'
   TRAIN: ['nairobi']
   TEST: ['lagos']

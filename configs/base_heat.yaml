@@ -1,0 +1,14 @@
+_BASE_: "base.yaml"
+
+MODEL:
+  OUTPUT_ACTIVATION: 'Sigmoid'
+
+TRAINER:
+  LR: 1e-4
+  BATCH_SIZE: 8
+  EPOCHS: 1000
+
+DATALOADER:
+  LABEL: 'heat'
+  SPLIT: 'random'  # 'site'
+  SITES: ['nairobi']

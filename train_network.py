@@ -14,7 +14,7 @@ from utils import networks, datasets, loss_functions, evaluation, experiment_man
 
 def run_training(cfg):
 
-    net = networks.PopulationNet(cfg.MODEL)
+    net = networks.PlanetNet(cfg.MODEL)
     net.to(device)
 
     optimizer = optim.AdamW(net.parameters(), lr=cfg.TRAINER.LR, weight_decay=0.01)
@@ -22,7 +22,7 @@ def run_training(cfg):
     criterion = loss_functions.get_criterion(cfg.MODEL.LOSS_TYPE)
 
     # reset the generators
-    dataset = datasets.PopDataset(cfg=cfg, run_type='train')
+    dataset = datasets.SurveyDataset(cfg=cfg, run_type='train')
     print(dataset)
 
     dataloader_kwargs = {
