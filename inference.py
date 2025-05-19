@@ -22,7 +22,7 @@ def inference(cfg: CfgNode):
                 pred = net(img.unsqueeze(0))
 
             pred = pred.detach().cpu().squeeze().item()
-            label = item['y'].item()
+            label = item['y'].cpu().item()
             site, grid_id = item['site'], item['id']
             data.append({
                 'model': pred,

@@ -49,7 +49,7 @@ def run_training(cfg):
         wandb.log({'lr': scheduler.get_last_lr()[-1] if scheduler is not None else cfg.TRAINER.LR, 'epoch': epoch})
 
         start = timeit.default_timer()
-        loss_set, pop_set = [], []
+        loss_set, y_set = [], []
 
         for i, batch in enumerate(dataloader):
 
@@ -65,7 +65,7 @@ def run_training(cfg):
             optimizer.step()
 
             loss_set.append(loss.item())
-            pop_set.append(y_gts.cpu().flatten().numpy())
+            y_set.append(y_gts.cpu().flatten().numpy())
 
             global_step += 1
             epoch_float = global_step / steps_per_epoch
@@ -75,13 +75,13 @@ def run_training(cfg):
                 time = timeit.default_timer() - start
                 wandb.log({
                     'loss': np.mean(loss_set),
-                    'pop_ref': np.mean(pop_set),
+                    'pop_ref': np.mean(y_set),
                     'time': time,
                     'step': global_step,
                     'epoch': epoch_float,
                 })
                 start = timeit.default_timer()
-                loss_set, pop_set = [], []
+                loss_set, y_set = [], []
             # end of batch
 
         assert (epoch == epoch_float)

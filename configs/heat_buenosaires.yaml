@@ -1,4 +1,4 @@
-_BASE_: "base.yaml"
+_BASE_: "base_heat.yaml"
 
 MODEL:
   OUTPUT_ACTIVATION: 'Sigmoid'
@@ -9,6 +9,7 @@ TRAINER:
   EPOCHS: 250
 
 DATALOADER:
-  LABEL: 'heat'
-  SPLIT: 'random'  # 'site'
+  SPLIT: 'site'  # 'site'
+  TRAIN: ['nairobi', 'lagos']
+  TEST: ['buenosaires']
   SITES: ['nairobi', 'lagos', 'buenosaires']
