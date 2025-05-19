@@ -1,0 +1,4 @@
+_BASE_: "base_heat.yaml"
+
+TRAINER:
+  EPOCHS: 500
