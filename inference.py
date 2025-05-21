@@ -13,7 +13,7 @@ def inference(cfg: CfgNode):
     data = []
 
     for run_type in ['train', 'test', 'unlabeled']:
-        dataset = datasets.SurveyDataset(cfg=cfg, run_type=run_type)
+        dataset = datasets.SurveyDataset(cfg=cfg, run_type=run_type, no_augmentations=True)
         for index in range(len(dataset)):
             item = dataset.__getitem__(index)
             img = item['x'].to(device)
@@ -30,6 +30,8 @@ def inference(cfg: CfgNode):
                 'site': site,
                 'id': grid_id,
                 'split': run_type,
+                'i': item['i_cell'],
+                'j': item['j_cell'],
             })
 
     out_file = Path(cfg.PATHS.OUTPUT) / 'inference' / f'inference_{cfg.NAME}.json'

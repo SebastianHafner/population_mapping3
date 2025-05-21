@@ -4,3 +4,4 @@ work-dir/
 *ipynb
 .ipynb_checkpoints/
 utils/__pycache__
+notebooks/

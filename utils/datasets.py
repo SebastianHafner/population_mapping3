@@ -45,6 +45,14 @@ class AbstractSurveyDataset(torch.utils.data.Dataset):
         tile = np.clip(0, 1, tile[:, :, self.indices] / self.rescale_factor)
         return tile.astype(np.float32)
 
+    def _get_label_img(self, site: str) -> tuple:
+        if self.label == 'pop':
+            file = self.root_path / f'{site}_pop_surveyed_cells.tif'
+        elif self.label == 'heat':
+            file = self.root_path / f'{site}_le_tsi_surveyed_cells.tif'
+        label, transform, crs = geofiles.read_tif(file)
+        return label, transform, crs
+
     def __len__(self):
         return self.length
 
@@ -110,6 +118,8 @@ class SurveyDataset(AbstractSurveyDataset):
             'y': torch.tensor([y]),
             'i': i_img,
             'j': j_img,
+            'i_cell': s['i'],
+            'j_cell': s['j'],
             'id': s['id'],
             'site': s['site'],
         }

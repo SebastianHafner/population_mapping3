@@ -73,10 +73,10 @@ def setup_cfg(args):
     return cfg
 
 
-def setup_cfg_manual(config_name: str, output_dir: Path, dataset_dir: Path):
+def setup_cfg_manual(config_file: Path, output_dir: Path, dataset_dir: Path):
     cfg = new_config()
-    cfg.merge_from_file(f'configs/{config_name}.yaml')
-    cfg.NAME = config_name
+    cfg.merge_from_file(config_file)
+    cfg.NAME = config_file.stem
     cfg.PATHS.ROOT = str(Path.cwd())
     assert output_dir.exists()
     cfg.PATHS.OUTPUT = str(output_dir)
