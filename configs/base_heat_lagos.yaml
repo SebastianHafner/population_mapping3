@@ -1,0 +1,10 @@
+_BASE_: "base_heat.yaml"
+
+TRAINER:
+  EPOCHS: 250
+
+DATALOADER:
+  SPLIT: 'site'
+  TRAIN: ['nairobi', 'buenosaires']
+  TEST: ['lagos']
+  SITES: ['nairobi', 'lagos', 'buenosaires']

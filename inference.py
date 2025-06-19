@@ -2,6 +2,7 @@ import torch
 from pathlib import Path
 from utils import networks, datasets, parsers, experiment_manager, geofiles
 from utils.experiment_manager import CfgNode
+from tqdm import tqdm
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -13,8 +14,9 @@ def inference(cfg: CfgNode):
     data = []
 
     for run_type in ['train', 'test', 'unlabeled']:
+        print(run_type)
         dataset = datasets.SurveyDataset(cfg=cfg, run_type=run_type, no_augmentations=True)
-        for index in range(len(dataset)):
+        for index in tqdm(range(len(dataset))):
             item = dataset.__getitem__(index)
             img = item['x'].to(device)
 
