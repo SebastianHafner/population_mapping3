@@ -6,9 +6,10 @@ MODEL:
 TRAINER:
   LR: 1e-4
   BATCH_SIZE: 8
-  EPOCHS: 250
+  EPOCHS: 500
 
 DATALOADER:
   LABEL: 'heat'
-  SPLIT: 'random'  # 'site'
+  SPLIT: 'random'  # random/site
+  FOLD: 1
   SITES: ['nairobi', 'lagos', 'buenosaires']

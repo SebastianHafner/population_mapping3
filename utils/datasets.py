@@ -68,11 +68,11 @@ class SurveyDataset(AbstractSurveyDataset):
 
         self.run_type = run_type
         if self.split == 'random':
-            random_numbers = np.random.rand(len(self.labeled_samples))
+            fold = self.cfg.DATALOADER.FOLD
             if run_type == 'train':
-                self.samples = [s for s, r in zip(self.labeled_samples, random_numbers) if r < 0.8]
+                self.samples = [s for s in self.labeled_samples if s['fold'] != fold]
             elif run_type == 'test':
-                self.samples = [s for s, r in zip(self.labeled_samples, random_numbers) if r >= 0.8]
+                self.samples = [s for s in self.labeled_samples if s['fold'] == fold]
             elif run_type == 'unlabeled':
                 self.samples = [s for s in self.all_samples if not s['is_labeled']]
             else:

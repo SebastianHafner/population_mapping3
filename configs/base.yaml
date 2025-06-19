@@ -24,7 +24,8 @@ MODEL:
 
 DATALOADER:
   LABEL: 'pop'
-  SPLIT: 'random'  # 'site'
+  SPLIT: 'folds'  # folds/site
+  FOLD: 1  # this fold is for testing, the other ones are used for training
   TRAIN: ['nairobi']
   TEST: ['lagos']
   NUM_WORKER: 8
